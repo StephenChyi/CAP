@@ -4,9 +4,7 @@
 using System;
 using DotNetCore.CAP;
 using DotNetCore.CAP.Dashboard;
-using DotNetCore.CAP.Dashboard.GatewayProxy;
-using DotNetCore.CAP.Dashboard.GatewayProxy.Requester;
-using DotNetCore.CAP.Serialization;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -27,11 +25,20 @@ namespace DotNetCore.CAP
             _options?.Invoke(dashboardOptions);
             services.AddTransient<IStartupFilter, CapStartupFilter>();
             services.AddSingleton(dashboardOptions);
-            services.AddSingleton(x => DashboardRoutes.GetDashboardRoutes(x.GetRequiredService<ISerializer>()));
-            services.AddSingleton<IHttpRequester, HttpClientHttpRequester>();
-            services.AddSingleton<IHttpClientCache, MemoryHttpClientCache>();
-            services.AddSingleton<IRequestMapper, RequestMapper>();
+            services.AddSingleton<CapMetricsEventListener>();
+        }
+    }
 
+    sealed class CapStartupFilter : IStartupFilter
+    {
+        public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next)
+        {
+            return app =>
+            {
+                next(app);
+
+                app.UseCapDashboard();
+            };
         }
     }
 }
